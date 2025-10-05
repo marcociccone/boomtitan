@@ -78,6 +78,7 @@ def test_generate(
     max_new_tokens: int = 32,
     batch_size: int = 1,
     top_k: Optional[int] = None,
+    top_p: Optional[float] = None,
     seed: Optional[int] = None,
     deterministic: bool = False,
 ):
@@ -105,6 +106,8 @@ def test_generate(
 
     # Tokenizer setup
     tokenizer = train_spec.build_tokenizer_fn(config)
+    eos_id = tokenizer.eos_id
+    print("eos_id", eos_id)
 
     model_args = train_spec.model_args[config.model.flavor]
     model_args.update_from_config(config)
@@ -168,6 +171,7 @@ def test_generate(
             .repeat(batch_size, 1)
         )
     ).to(device_type)
+    eos_id = torch.tensor(eos_id).to(device_type)
 
     device_memory_monitor.reset_peak_stats()
 
@@ -179,7 +183,9 @@ def test_generate(
         temperature=temperature,
         max_new_tokens=max_new_tokens,
         top_k=top_k,
+        top_p=top_p,
         seed=seed,
+        eos_id=eos_id,
     )
     t1 = time.monotonic()
     elapsed_sec = t1 - t0
@@ -258,7 +264,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_new_tokens",
         type=int,
-        default=32,
+        default=128,
         help="Max number of tokens to generate. Default is 32",
     )
     parser.add_argument(
@@ -266,6 +272,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--top_k", type=int, help="Prune to select from top_k probabilities. Optional"
+    )
+    parser.add_argument(
+        "--top_p", type=float, help="Top-p filtering, Optional"
     )
     parser.add_argument("--seed", type=int, help="Random seed for reproducibility")
     parser.add_argument(
@@ -293,6 +302,7 @@ if __name__ == "__main__":
         max_new_tokens=args.max_new_tokens,
         batch_size=args.batch_size,
         top_k=args.top_k,
+        top_p=args.top_p,
         seed=args.seed,
         deterministic=args.deterministic,
     )

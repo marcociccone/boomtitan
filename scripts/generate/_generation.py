@@ -20,6 +20,7 @@ def logits_to_probs(
     logits: torch.Tensor,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
+    top_p: Optional[float] = None,
 ) -> torch.Tensor:
     logits = logits / max(temperature, 1e-5)
 
@@ -29,6 +30,20 @@ def logits_to_probs(
         logits = torch.where(logits < pivot, -float("Inf"), logits)
 
     probs = torch.nn.functional.softmax(logits, dim=-1)
+
+    if top_p is not None:
+        # Sort probabilities in descending order
+        probs_sorted, probs_idx = torch.sort(probs, dim=-1, descending=True)
+        # Compute cumulative probabilities
+        probs_cumsum = torch.cumsum(probs_sorted, dim=-1)
+        # Create mask for tokens to keep (those within top-p threshold)
+        mask = probs_cumsum - probs_sorted > top_p
+        probs_sorted[mask] = 0.0
+        # Redistribute probabilities (renormalize)
+        probs_sorted = probs_sorted / probs_sorted.sum(dim=-1, keepdim=True)
+        # Scatter back to original order
+        probs = torch.gather(probs_sorted, dim=-1, index=torch.argsort(probs_idx, dim=-1))
+    
     return probs
 
 
@@ -38,10 +53,12 @@ def generate_next_token(
     *,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
+    top_p: Optional[float] = None,
     rng: Optional[torch.Generator] = None,
+    eos_id: Optional[int] = None
 ) -> torch.Tensor:
-    logits = model(x)  # (B, T, vocab_size)
-    probs = logits_to_probs(logits[:, -1, :], temperature, top_k)
+    logits = model(x, eos_id=eos_id)  # (B, T, vocab_size)
+    probs = logits_to_probs(logits[:, -1, :], temperature, top_k, top_p)
     next_token = multinomial_sample_one(probs, rng=rng)
     return next_token
 
@@ -54,7 +71,9 @@ def generate(
     max_new_tokens: int,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
+    top_p: Optional[float] = None,
     seed: Optional[int] = None,
+    eos_id: Optional[int] = None
 ) -> torch.Tensor:
     # ensure batch dimension (T,) --> (B, T)
     if input_ids.ndim == 1:
@@ -72,7 +91,9 @@ def generate(
             x=generated_tokens,
             temperature=temperature,
             top_k=top_k,
+            top_p=top_p,
             rng=rng,
+            eos_id=eos_id
         )
 
         generated_tokens = torch.cat([generated_tokens, next_token], dim=1)

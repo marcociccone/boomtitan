@@ -18,7 +18,9 @@ class Llama3StateDictAdapter(StateDictAdapter):
         self.from_hf_map = {
             "model.embed_tokens.weight": "tok_embeddings.weight",
             "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attention.wq.weight",
+            "model.layers.{}.self_attn.q_norm.weight": "layers.{}.attention.qk_norm.query_norm.weight",
             "model.layers.{}.self_attn.k_proj.weight": "layers.{}.attention.wk.weight",
+            "model.layers.{}.self_attn.k_norm.weight": "layers.{}.attention.qk_norm.key_norm.weight",
             "model.layers.{}.self_attn.v_proj.weight": "layers.{}.attention.wv.weight",
             "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attention.wo.weight",
             "model.layers.{}.self_attn.rotary_emb.inv_freq": None,
@@ -55,6 +57,16 @@ class Llama3StateDictAdapter(StateDictAdapter):
             .reshape(dim1, dim2)
         )
 
+    # --- NEW: Permutation functions for 1D QKNorm weights ---
+    def _permute_1d(self, w):
+        head_dim = w.shape[0]
+        return w.view(head_dim // 2, 2).transpose(0, 1).reshape(head_dim,).clone()
+
+    def _reverse_permute_1d(self, w):
+        head_dim = w.shape[0]
+        return w.view(2, head_dim // 2).transpose(0, 1).reshape(head_dim,).clone()
+    # -----------------------------------------------------------
+
     def to_hf(self, state_dict: dict[str, Any]) -> dict[str, Any]:
         to_hf_map = {v: k for k, v in self.from_hf_map.items()}
 
@@ -80,6 +92,13 @@ class Llama3StateDictAdapter(StateDictAdapter):
                 if abstract_key == "layers.{}.attention.wk.weight":
                     key_value_dim = head_dim * n_kv_heads
                     value = self._permute(value, n_kv_heads, key_value_dim, dim)
+
+                # --- NEW: Permute QKNorm weights ---
+                if abstract_key == "layers.{}.attention.qk_norm.query_norm.weight":
+                    value = self._permute_1d(value)
+                if abstract_key == "layers.{}.attention.qk_norm.key_norm.weight":
+                    value = self._permute_1d(value)
+                # ------------------------------------
 
                 if new_key is None:
                     continue
@@ -115,6 +134,13 @@ class Llama3StateDictAdapter(StateDictAdapter):
                 if abstract_key == "model.layers.{}.self_attn.k_proj.weight":
                     key_value_dim = head_dim * n_kv_heads
                     value = self._reverse_permute(value, n_kv_heads, key_value_dim, dim)
+
+                # --- NEW: Reverse permute QKNorm weights ---
+                if abstract_key == "model.layers.{}.self_attn.q_norm.weight":
+                    value = self._reverse_permute_1d(value)
+                if abstract_key == "model.layers.{}.self_attn.k_norm.weight":
+                    value = self._reverse_permute_1d(value)
+                # -------------------------------------------
 
                 if new_key is None:
                     continue

@@ -12,8 +12,9 @@ set -e
 # LOG_RANK=0,1 NGPU=4 ./run_llama_generate.sh
 NGPU=${NGPU:-"1"}
 LOG_RANK=${LOG_RANK:-0}
-CONFIG_FILE=${CONFIG_FILE:-"./torchtitan/models/llama3/train_configs/debug_model.toml"}
-CHECKPOINT_DIR=${CHECKPOINT_DIR:-"./outputs/checkpoint/"}
+# CONFIG_FILE=${CONFIG_FILE:-"./torchtitan/models/llama3/train_configs/debug_model.toml"}
+CONFIG_FILE=${CONFIG_FILE:-"./torchtitan/models/boom/train_configs/sl3-datamix/smollm13B.toml"}
+CHECKPOINT_DIR=${CHECKPOINT_DIR:-"/leonardo_work/IscrB_Decentro/boom_warmup_13B_ckp/step-184000/"}
 PROMPT=${PROMPT:-""}
 
 overrides=()
@@ -34,6 +35,8 @@ if [ $# -ne 0 ]; then
 fi
 
 set -x
+
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 torchrun --standalone \
 	--nproc_per_node="${NGPU}" \
 	--local-ranks-filter="${LOG_RANK}" \
