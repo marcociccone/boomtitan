@@ -76,7 +76,9 @@ class ModelWrapper(Stateful):
         return state_dict
 
     def state_dict(self) -> dict[str, Any]:
-        return self.cache_state_dict
+        # Fix from https://github.com/pytorch/torchtitan/pull/1702
+        # https://github.com/pytorch/torchtitan/issues/1136
+        return self._get_state_dict()
 
     def load_state_dict(self, state_dict: dict[str, Any]) -> None:
         func = functools.partial(
