@@ -647,6 +647,7 @@ class Trainer(torch.distributed.checkpoint.stateful.Stateful):
             job_config=self.job_config,
             stage_args_data=stage_args_data,
             parallel_dims=self.parallel_dims, # TODO: meaybe this one should be self.ft_manager (Fault Tolerance)
+            ft_manager=self.ft_manager,
             input_pp_rank=0, # TODO
             output_pp_rank=0,  # TODO
             consumed_train_samples_stage=cur_stage_consumed_train_samples,

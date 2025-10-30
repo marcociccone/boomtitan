@@ -252,6 +252,7 @@ def build_tb_dataloader(
     job_config: JobConfig,
     stage_args_data,
     parallel_dims,
+    ft_manager,
     input_pp_rank: int,
     output_pp_rank: int,
     consumed_train_samples_stage: int,
@@ -286,6 +287,7 @@ def build_tb_dataloader(
         consumed_samples=consumed_train_samples_stage,
         num_samples=job_config.training.steps * global_batch_size, # TODO: this overshoots what's needed by the current stage, but it doesnt matter?
         parallel_dims=parallel_dims,
+        ft_manager=ft_manager,
         input_pp_rank=input_pp_rank,
         output_pp_rank=output_pp_rank,
         dataloader_drop_last=True,

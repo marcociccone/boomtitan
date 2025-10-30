@@ -492,6 +492,7 @@ def get_tb_dataloader(
     consumed_samples: int,
     num_samples: int,
     parallel_dims: ParallelDims,
+    ft_manager,
     input_pp_rank: int,
     output_pp_rank: int,
     dataloader_drop_last: bool = True,
@@ -512,6 +513,10 @@ def get_tb_dataloader(
         dp_size = parallel_dims.world_mesh["dp"].size()
     else:
         dp_rank, dp_size = 0, 1
+
+    # Adjust data parallel rank and size based on torchft
+    # each training process is independent and we don't have visibility of the full dp_group from parallel dims
+    dp_size, dp_rank = ft_manager.get_dp_info(dp_size, dp_rank)
 
     # Only some rank require to run the dataloader.
     if pp_rank not in [input_pp_rank, output_pp_rank]:
