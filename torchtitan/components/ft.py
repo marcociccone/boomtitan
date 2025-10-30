@@ -124,13 +124,14 @@ def maybe_semi_sync_training(
         if semi_sync_method.lower() == "diloco":
             # Create the outer optimizer based on the inner optimizer parameters.
             outer_optimizers = []
+            print("FT CONFIG:")
+            print(ft_config)
             for model in model_parts:
                 params = [p for p in model.parameters() if p.requires_grad]
                 outer_optimizer = torch.optim.SGD(
-                    params, lr=0.7, momentum=0.9, nesterov=True
+                    params, lr=ft_config.outer_lr, momentum=ft_config.outer_momentum, nesterov=ft_config.outer_nesterov,
                 )
                 outer_optimizers.append(outer_optimizer)
-
             return local_sgd.DiLoCo(
                 manager=ft_manager._manager,
                 model_fragments=model_parts,

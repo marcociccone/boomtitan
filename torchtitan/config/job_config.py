@@ -731,6 +731,14 @@ class FaultTolerance:
     This is only used when "semi_sync_method" is set.
     """
 
+    outer_lr: float = 0.7
+    outer_momentum: float = 0.9
+    outer_nesterov: bool = True
+    """
+    DiLoCo outer Optimizer parameters.
+
+    This is only used when "semi_sync_method" is set to "diloco".
+    """
 
 @dataclass
 class Experimental:
