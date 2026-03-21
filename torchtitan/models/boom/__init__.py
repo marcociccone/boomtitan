@@ -98,6 +98,18 @@ boom_configs = {
         multiple_of=256,
         max_seq_len=2048,
     ),
+    "1B": TransformerModelArgs(
+        dim=2048,
+        n_layers=16,
+        n_heads=32,
+        n_kv_heads=8,
+        ffn_dim_multiplier=1.5,
+        use_flex_attn=True,
+        vocab_size=128256,
+        rope_theta=500000,
+        multiple_of=256,
+        max_seq_len=131072,
+    ),
     "8B": TransformerModelArgs(
         dim=4096,
         n_layers=32,

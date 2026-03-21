@@ -79,8 +79,8 @@ class TransformerModelArgs(BaseModelArgs):
         if hasattr(job_config.model, "use_qk_norm"):
             self.use_qk_norm = job_config.model.use_qk_norm
         
-        # Handle init_std parameter
-        if hasattr(job_config.model, "init_std"):
+        # Handle init_std parameter (only override if explicitly set, not None)
+        if hasattr(job_config.model, "init_std") and job_config.model.init_std is not None:
             self.init_std = job_config.model.init_std
             logger.info(f"Using custom init_std: {self.init_std}")
             
