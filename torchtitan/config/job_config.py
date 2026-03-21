@@ -206,6 +206,9 @@ class Training:
     dataset: str = "c4_test"
     """Dataset to use"""
 
+    dataset_type: str = "tokenized_bytes"
+    """Dataset type: 'tokenized_bytes' (requires data_stages) or 'huggingface'"""
+
     dataset_path: str | None = None
     """
     Path to the dataset in the file system. If provided, data will be

@@ -52,15 +52,13 @@ DATASETS = {
         loader=lambda path: load_dataset(path, split="train"),
         text_processor=_process_c4_text,
     ),
-    ## this is an example this should be modify with the actual path
-    ## huggingface-cli download HuggingFaceFW/fineweb-edu --repo-type dataset --include sample/10BT/* --local-dir /fsx/elie_bakouch/boomtitan/datasets/fw-edu
-    "fw-edu-10bt-local": DatasetConfig(
-        path="./data/fw-edu/sample/10BT",
+    "fineweb-edu-10bt": DatasetConfig(
+        path="./data/fw-edu/sample/10B",
         loader=lambda path: load_dataset(path, split="train"),
         text_processor=lambda sample: sample["text"],
     ),
-    "fw-edu-100bt-local": DatasetConfig(
-        path="./data/fw-edu/sample/100BT",
+    "fineweb-edu-100bt": DatasetConfig(
+        path="./data/fw-edu/sample/100B",
         loader=lambda path: load_dataset(path, split="train"),
         text_processor=lambda sample: sample["text"],
     ),
@@ -105,7 +103,13 @@ class HuggingFaceDataset(IterableDataset, Stateful):
         path, dataset_loader, text_processor = _validate_dataset(
             dataset_name, dataset_path
         )
+
+        # Build HF cache on rank 0 first to avoid parallel cache writes from all ranks
+        if torch.distributed.is_initialized() and torch.distributed.get_rank() != 0:
+            torch.distributed.barrier()
         ds = dataset_loader(path)
+        if torch.distributed.is_initialized() and torch.distributed.get_rank() == 0:
+            torch.distributed.barrier()
 
         self.dataset_name = dataset_name
         self._data = split_dataset_by_node(ds, dp_rank, dp_world_size)

@@ -241,10 +241,10 @@ class Trainer(torch.distributed.checkpoint.stateful.Stateful):
             else None
         )
 
-        if not job_config.data_stages:
+        if job_config.training.dataset_type == "huggingface":
             logger.info("Creating HF stateful dataloader...")
-            # Use HuggingFace standard dataloader with load_dataset
-            self.dataloader = self.train_spec.build_dataloader_fn(
+            from torchtitan.datasets.hf_datasets import build_hf_dataloader
+            self.dataloader = build_hf_dataloader(
                 dp_world_size=dp_degree,
                 dp_rank=dp_rank,
                 tokenizer=self.tokenizer,
@@ -861,7 +861,7 @@ class Trainer(torch.distributed.checkpoint.stateful.Stateful):
 
         # Create datatrove multi-stage dataloader after reloading trainer state
         # to get token consumption statistics and restart from the correct step/tokens
-        if self.job_config.data_stages:
+        if self.job_config.training.dataset_type == "tokenized_bytes":
             self.dataloader = self._create_datatrove_dataloader()
 
         leaf_folder = (
